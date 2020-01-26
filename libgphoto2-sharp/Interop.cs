@@ -35,10 +35,16 @@ namespace GPhoto2.Net
 
         #region gphoto2-context.h
 
-        delegate void GPContextIdleFunc(IntPtr Context, IntPtr Data);
-        delegate void GPContextErrorFunc(IntPtr Context, string Text, IntPtr Data);
-        delegate void GPContextStatusFunc(IntPtr Context, string Text, IntPtr Data);
-        delegate void GPContextMessageFunc(IntPtr Context, string Text, IntPtr Data);
+        public delegate void GPContextIdleFunc(IntPtr Context, IntPtr Data);
+        public delegate void GPContextErrorFunc(IntPtr Context, string Text, IntPtr Data);
+        public delegate void GPContextStatusFunc(IntPtr Context, string Text, IntPtr Data);
+        public delegate void GPContextMessageFunc(IntPtr Context, string Text, IntPtr Data);
+        public delegate GPContextFeedback GPContextQuestionFunc(IntPtr Context, string Text, IntPtr Data);
+        public delegate GPContextFeedback GPContextCancelFunc(IntPtr Context, IntPtr Data);
+        public delegate uint GPContextProgressStartFunc(IntPtr Context, float Target, string Text, IntPtr Data);
+        public delegate void GPContextProgressUpdateFunc(IntPtr Context, uint ID, float Current, IntPtr Data);
+        public delegate void GPContextProgressStopFunc(IntPtr Context, uint ID, IntPtr Data);
+
 
         /// <summary>
         /// Created a new GPContext.
@@ -63,6 +69,78 @@ namespace GPhoto2.Net
         /// <param name="Context">The GPContext to unreference</param>
         [DllImport(GPhoto2Lib, CharSet = CharSet.Ansi, ExactSpelling = true)]
         public static extern void gp_context_unref(IntPtr Context);
+
+
+        /// <summary>
+        /// Sets the callback for an idle period notification
+        /// </summary>
+        /// <param name="Context">The GPContext to set the callback for</param>
+        /// <param name="Func">The idle period callback (this must be a <see cref="GPContextIdleFunc"/>)</param>
+        /// <param name="Data">User-specified data that will be included in the callback</param>
+        [DllImport(GPhoto2Lib, CharSet = CharSet.Ansi, ExactSpelling = true)]
+        public static extern void gp_context_set_idle_func(IntPtr Context, IntPtr Func, IntPtr Data);
+
+
+        /// <summary>
+        /// Sets the callbacks for progress reports
+        /// </summary>
+        /// <param name="Context">The GPContext to set the callback for</param>
+        /// <param name="StartFunc">The progress start callback (this must be a <see cref="GPContextProgressStartFunc"/>)</param>
+        /// <param name="UpdateFunc">The progress updated callback (this must be a <see cref="GPContextProgressUpdateFunc"/>)</param>
+        /// <param name="StopFunc">The progress finished callback (this must be a <see cref="GPContextProgressStopFunc"/>)</param>
+        /// <param name="Data">User-specified data that will be included in the callback</param>
+        [DllImport(GPhoto2Lib, CharSet = CharSet.Ansi, ExactSpelling = true)]
+        public static extern void gp_context_set_progress_funcs(IntPtr Context, IntPtr StartFunc, IntPtr UpdateFunc, IntPtr StopFunc, IntPtr Data);
+
+
+        /// <summary>
+        /// Sets the callback for error messages
+        /// </summary>
+        /// <param name="Context">The GPContext to set the callback for</param>
+        /// <param name="Func">The error report callback (this must be a <see cref="GPContextErrorFunc"/>)</param>
+        /// <param name="Data">User-specified data that will be included in the callback</param>
+        [DllImport(GPhoto2Lib, CharSet = CharSet.Ansi, ExactSpelling = true)]
+        public static extern void gp_context_set_error_func(IntPtr Context, IntPtr Func, IntPtr Data);
+
+
+        /// <summary>
+        /// Sets the callback for status messages
+        /// </summary>
+        /// <param name="Context">The GPContext to set the callback for</param>
+        /// <param name="Func">The status message callback (this must be a <see cref="GPContextStatusFunc"/>)</param>
+        /// <param name="Data">User-specified data that will be included in the callback</param>
+        [DllImport(GPhoto2Lib, CharSet = CharSet.Ansi, ExactSpelling = true)]
+        public static extern void gp_context_set_status_func(IntPtr Context, IntPtr Func, IntPtr Data);
+
+
+        /// <summary>
+        /// Sets the callback for questions
+        /// </summary>
+        /// <param name="Context">The GPContext to set the callback for</param>
+        /// <param name="Func">The question callback (this must be a <see cref="GPContextQuestionFunc"/>)</param>
+        /// <param name="Data">User-specified data that will be included in the callback</param>
+        [DllImport(GPhoto2Lib, CharSet = CharSet.Ansi, ExactSpelling = true)]
+        public static extern void gp_context_set_question_func(IntPtr Context, IntPtr Func, IntPtr Data);
+
+
+        /// <summary>
+        /// Sets the callback for cancel notifications
+        /// </summary>
+        /// <param name="Context">The GPContext to set the callback for</param>
+        /// <param name="Func">The cancel notification callback (this must be a <see cref="GPContextCancelFunc"/>)</param>
+        /// <param name="Data">User-specified data that will be included in the callback</param>
+        [DllImport(GPhoto2Lib, CharSet = CharSet.Ansi, ExactSpelling = true)]
+        public static extern void gp_context_set_cancel_func(IntPtr Context, IntPtr Func, IntPtr Data);
+
+
+        /// <summary>
+        /// Sets the callback for info messages
+        /// </summary>
+        /// <param name="Context">The GPContext to set the callback for</param>
+        /// <param name="Func">The info message callback (this must be a <see cref="GPContextMessageFunc"/>)</param>
+        /// <param name="Data">User-specified data that will be included in the callback</param>
+        [DllImport(GPhoto2Lib, CharSet = CharSet.Ansi, ExactSpelling = true)]
+        public static extern void gp_context_set_message_func(IntPtr Context, IntPtr Func, IntPtr Data);
 
         #endregion
 
