@@ -85,5 +85,24 @@ namespace GPhoto2.Net
         /// USB device protocol
         /// </summary>
         public int UsbProtocol;
+
+
+        // ===== Internal Members for libgphoto2 Use =====
+
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 1024)]
+        private string Library;
+
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 1024)]
+        private string ID;
+
+        private GPhotoDeviceType DeviceType;
+
+        private int Reserved2;
+        private int Reserved3;
+        private int Reserved4;
+        private int Reserved5;
+        private int Reserved6;
+        private int Reserved7;
+        private int Reserved8;
     }
 }

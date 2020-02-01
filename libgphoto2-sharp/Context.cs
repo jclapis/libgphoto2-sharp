@@ -372,7 +372,7 @@ namespace GPhoto2.Net
         /// this machine.
         /// </summary>
         /// <returns>A collection of available cameras</returns>
-        public IEnumerable<Camera> GetCameras()
+        public IReadOnlyList<Camera> GetCameras()
         {
             List<Camera> cameras = new List<Camera>();
 
@@ -535,9 +535,13 @@ namespace GPhoto2.Net
         /// <returns>A <see cref="GPContextFeedback"/> value indicating the user's response</returns>
         private GPContextFeedback QuestionCallback(IntPtr Context, string Text, IntPtr Data)
         {
-            QuestionAsked?.Invoke(this, Text);
-            QuestionWaiter.WaitOne();
-            return QuestionResponse;
+            if(QuestionAsked != null)
+            {
+                QuestionAsked?.Invoke(this, Text);
+                QuestionWaiter.WaitOne();
+                return QuestionResponse;
+            }
+            return GPContextFeedback.OK;
         }
 
 
@@ -549,9 +553,13 @@ namespace GPhoto2.Net
         /// <returns>A <see cref="GPContextFeedback"/> value indicating the user's response</returns>
         private GPContextFeedback CancelCallback(IntPtr Context, IntPtr Data)
         {
-            CancelRequested?.Invoke(this, null);
-            CancelWaiter.WaitOne();
-            return CancelResponse;
+            if(CancelRequested != null)
+            {
+                CancelRequested.Invoke(this, null);
+                CancelWaiter.WaitOne();
+                return CancelResponse;
+            }
+            return GPContextFeedback.OK;
         }
 
 
