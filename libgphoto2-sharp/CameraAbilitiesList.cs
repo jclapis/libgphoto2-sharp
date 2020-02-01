@@ -26,7 +26,7 @@ namespace GPhoto2.Net
     /// </summary>
     internal class CameraAbilitiesList : IDisposable
     {
-        #region gphoto2-abilities-list.h
+        #region Interop from gphoto2-abilities-list.h
 
         /// <summary>
         /// Creates a new abilities list.
@@ -34,7 +34,7 @@ namespace GPhoto2.Net
         /// <param name="AbilitiesList">[OUT] The pointer to the list being created</param>
         /// <returns>A status code indicating the result of the operation</returns>
         [DllImport(Constants.GPhoto2Lib, CharSet = CharSet.Ansi, ExactSpelling = true)]
-        public static extern GPResult gp_abilities_list_new(out IntPtr AbilitiesList);
+        private static extern GPResult gp_abilities_list_new(out IntPtr AbilitiesList);
 
 
         /// <summary>
@@ -43,25 +43,53 @@ namespace GPhoto2.Net
         /// <param name="AbilitiesList">The list to destroy</param>
         /// <returns>A status code indicating the result of the operation</returns>
         [DllImport(Constants.GPhoto2Lib, CharSet = CharSet.Ansi, ExactSpelling = true)]
-        public static extern GPResult gp_abilities_list_free(IntPtr AbilitiesList);
+        private static extern GPResult gp_abilities_list_free(IntPtr AbilitiesList);
 
 
         /// <summary>
         /// Scans the system for camera drivers.
         /// </summary>
         /// <param name="List">The abilities list that will receive the loaded drivers</param>
-        /// <param name="Context">The current GPContext</param>
-        /// <returns></returns>
+        /// <param name="Context">The <see cref="Context"/> that owns this list</param>
+        /// <returns>A status code indicating the result of the operation</returns>
         [DllImport(Constants.GPhoto2Lib, CharSet = CharSet.Ansi, ExactSpelling = true)]
-        public static extern GPResult gp_abilities_list_load(IntPtr List, IntPtr Context);
-
-        #endregion
+        private static extern GPResult gp_abilities_list_load(IntPtr List, IntPtr Context);
 
 
         /// <summary>
-        /// The underlying handle used by libgphoto2
+        /// Tries to detect any camera connected to the computer using the supplied
+        /// list of supported cameras and the supplied info_list of ports.
         /// </summary>
-        private IntPtr Handle;
+        /// <param name="AbilitiesList">A handle to this <see cref="CameraAbilitiesList"/></param>
+        /// <param name="PortInfoList">A <see cref="PortInfoList"/> handle that contains the list of ports to scan</param>
+        /// <param name="CameraList">A <see cref="CameraList"/> that will hold the detected cameras</param>
+        /// <param name="Context">The <see cref="Context"/> that owns this list</param>
+        /// <returns>A status code indicating the result of the operation</returns>
+        [DllImport(Constants.GPhoto2Lib, CharSet = CharSet.Ansi, ExactSpelling = true)]
+        private static extern GPResult gp_abilities_list_detect(IntPtr AbilitiesList, IntPtr PortInfoList, IntPtr CameraList, IntPtr Context);
+
+
+        /// <summary>
+        /// Gets the index of the driver that supports the provided camera model.
+        /// </summary>
+        /// <param name="List">A handle to this <see cref="CameraAbilitiesList"/></param>
+        /// <param name="Model">The name of the camera model to get the driver for</param>
+        /// <returns>The index of the matching driver, or a <see cref="GPResult"/> error code if something went wrong.</returns>
+        [DllImport(Constants.GPhoto2Lib, CharSet = CharSet.Ansi, ExactSpelling = true)]
+        private static extern int gp_abilities_list_lookup_model(IntPtr List, string Model);
+
+
+        /// <summary>
+        /// Retrieve the camera abilities of entry with supplied index number.
+        /// </summary>
+        /// <param name="List">A handle to this <see cref="CameraAbilitiesList"/></param>
+        /// <param name="Index">The index of the camera to get the abilities for</param>
+        /// <param name="Abilities">[OUT] The camera's abilities</param>
+        /// <returns>A status code indicating the result of the operation</returns>
+        [DllImport(Constants.GPhoto2Lib, CharSet = CharSet.Ansi, ExactSpelling = true)]
+        private static extern GPResult gp_abilities_list_get_abilities(IntPtr List, int Index, out CameraAbilities Abilities);
+
+        #endregion
 
 
         /// <summary>
@@ -71,17 +99,25 @@ namespace GPhoto2.Net
 
 
         /// <summary>
-        /// Creates a new CameraAbilitiesList instance.
+        /// The underlying handle used by libgphoto2
+        /// </summary>
+        public IntPtr Handle { get; }
+
+
+        /// <summary>
+        /// Creates a new <see cref="CameraAbilitiesList"/> instance.
         /// </summary>
         /// <param name="Context">The context that owns this list</param>
         public CameraAbilitiesList(Context Context)
         {
             this.Context = Context;
-            GPResult result = gp_abilities_list_new(out Handle);
+
+            GPResult result = gp_abilities_list_new(out IntPtr handle);
             if(result != GPResult.Ok)
             {
                 throw new Exception($"Creating a new {nameof(CameraAbilitiesList)} failed: {result}");
             }
+            Handle = handle;
         }
 
 
@@ -90,6 +126,11 @@ namespace GPhoto2.Net
         /// </summary>
         public void LoadAvailableDrivers()
         {
+            if(DisposedValue)
+            {
+                throw new ObjectDisposedException(nameof(CameraAbilitiesList));
+            }
+
             GPResult result = gp_abilities_list_load(Handle, Context.Handle);
             if(result != GPResult.Ok)
             {
@@ -98,24 +139,56 @@ namespace GPhoto2.Net
         }
 
 
+        public CameraList FindAllConnectedCameras(PortInfoList PortsToScan)
+        {
+            CameraList discoveredCameras = new CameraList(Context);
+
+            GPResult result = gp_abilities_list_detect(Handle, PortsToScan.Handle, discoveredCameras.Handle, Context.Handle);
+            if(result != GPResult.Ok)
+            {
+                throw new Exception($"Error detecting available cameras: {result}");
+            }
+            for(int i = 0; i < discoveredCameras.Count; i++)
+            {
+                string cameraName = discoveredCameras.GetName(i);
+                
+                // Get the index of the driver that supports this camera
+                int driverIndex = gp_abilities_list_lookup_model(Handle, cameraName);
+                if(driverIndex < (int)GPResult.Ok)
+                {
+                    result = (GPResult)driverIndex;
+                    throw new Exception($"Failed to load driver for camera {cameraName}: {result}");
+                }
+
+                // Get the list of abilities that the driver supports
+                result = gp_abilities_list_get_abilities(Handle, driverIndex, out CameraAbilities cameraAbilities);
+                if(result != GPResult.Ok)
+                {
+                    throw new Exception($"Failed to get abilities for camera {cameraName}: {result}");
+                }
+
+                // TODO: RESUME AT gphoto2-camera.c, LINE 761!
+
+            }
+
+            return discoveredCameras;
+        }
+
+
         #region IDisposable Support
-        private bool disposedValue = false; // To detect redundant calls
+        private bool DisposedValue = false; // To detect redundant calls
 
         protected virtual void Dispose(bool disposing)
         {
-            if (!disposedValue)
+            if (!DisposedValue)
             {
                 if (disposing)
                 {
                     // TODO: dispose managed state (managed objects).
                 }
 
-                if(Handle != IntPtr.Zero)
-                {
-                    gp_abilities_list_free(Handle);
-                    Handle = IntPtr.Zero;
-                }
-                disposedValue = true;
+                gp_abilities_list_free(Handle);
+                DisposedValue = true;
             }
         }
 

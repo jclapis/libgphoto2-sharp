@@ -29,6 +29,117 @@ namespace GPhoto2.Net
     /// </summary>
     public class Context : IDisposable
     {
+        #region Interop from gphoto2-context.h
+
+        public delegate void GPContextIdleFunc(IntPtr Context, IntPtr Data);
+        public delegate void GPContextErrorFunc(IntPtr Context, string Text, IntPtr Data);
+        public delegate void GPContextStatusFunc(IntPtr Context, string Text, IntPtr Data);
+        public delegate void GPContextMessageFunc(IntPtr Context, string Text, IntPtr Data);
+        public delegate GPContextFeedback GPContextQuestionFunc(IntPtr Context, string Text, IntPtr Data);
+        public delegate GPContextFeedback GPContextCancelFunc(IntPtr Context, IntPtr Data);
+        public delegate uint GPContextProgressStartFunc(IntPtr Context, float Target, string Text, IntPtr Data);
+        public delegate void GPContextProgressUpdateFunc(IntPtr Context, uint ID, float Current, IntPtr Data);
+        public delegate void GPContextProgressStopFunc(IntPtr Context, uint ID, IntPtr Data);
+
+
+        /// <summary>
+        /// Created a new GPContext.
+        /// </summary>
+        /// <returns>A pointer to the new GPContext</returns>
+        [DllImport(Constants.GPhoto2Lib, CharSet = CharSet.Ansi, ExactSpelling = true)]
+        private static extern IntPtr gp_context_new();
+
+
+        /// <summary>
+        /// Increments the reference counter for a context.
+        /// </summary>
+        /// <param name="Context">The context being referenced</param>
+        [DllImport(Constants.GPhoto2Lib, CharSet = CharSet.Ansi, ExactSpelling = true)]
+        private static extern void gp_context_ref(IntPtr Context);
+
+
+        /// <summary>
+        /// Decrements the reference count for a GPContext. If the count reaches 0,
+        /// the context will be destroyed.
+        /// </summary>
+        /// <param name="Context">The GPContext to unreference</param>
+        [DllImport(Constants.GPhoto2Lib, CharSet = CharSet.Ansi, ExactSpelling = true)]
+        private static extern void gp_context_unref(IntPtr Context);
+
+
+        /// <summary>
+        /// Sets the callback for an idle period notification
+        /// </summary>
+        /// <param name="Context">The GPContext to set the callback for</param>
+        /// <param name="Func">The idle period callback (this must be a <see cref="GPContextIdleFunc"/>)</param>
+        /// <param name="Data">User-specified data that will be included in the callback</param>
+        [DllImport(Constants.GPhoto2Lib, CharSet = CharSet.Ansi, ExactSpelling = true)]
+        private static extern void gp_context_set_idle_func(IntPtr Context, IntPtr Func, IntPtr Data);
+
+
+        /// <summary>
+        /// Sets the callbacks for progress reports
+        /// </summary>
+        /// <param name="Context">The GPContext to set the callback for</param>
+        /// <param name="StartFunc">The progress start callback (this must be a <see cref="GPContextProgressStartFunc"/>)</param>
+        /// <param name="UpdateFunc">The progress updated callback (this must be a <see cref="GPContextProgressUpdateFunc"/>)</param>
+        /// <param name="StopFunc">The progress finished callback (this must be a <see cref="GPContextProgressStopFunc"/>)</param>
+        /// <param name="Data">User-specified data that will be included in the callback</param>
+        [DllImport(Constants.GPhoto2Lib, CharSet = CharSet.Ansi, ExactSpelling = true)]
+        private static extern void gp_context_set_progress_funcs(IntPtr Context, IntPtr StartFunc, IntPtr UpdateFunc, IntPtr StopFunc, IntPtr Data);
+
+
+        /// <summary>
+        /// Sets the callback for error messages
+        /// </summary>
+        /// <param name="Context">The GPContext to set the callback for</param>
+        /// <param name="Func">The error report callback (this must be a <see cref="GPContextErrorFunc"/>)</param>
+        /// <param name="Data">User-specified data that will be included in the callback</param>
+        [DllImport(Constants.GPhoto2Lib, CharSet = CharSet.Ansi, ExactSpelling = true)]
+        private static extern void gp_context_set_error_func(IntPtr Context, IntPtr Func, IntPtr Data);
+
+
+        /// <summary>
+        /// Sets the callback for status messages
+        /// </summary>
+        /// <param name="Context">The GPContext to set the callback for</param>
+        /// <param name="Func">The status message callback (this must be a <see cref="GPContextStatusFunc"/>)</param>
+        /// <param name="Data">User-specified data that will be included in the callback</param>
+        [DllImport(Constants.GPhoto2Lib, CharSet = CharSet.Ansi, ExactSpelling = true)]
+        private static extern void gp_context_set_status_func(IntPtr Context, IntPtr Func, IntPtr Data);
+
+
+        /// <summary>
+        /// Sets the callback for questions
+        /// </summary>
+        /// <param name="Context">The GPContext to set the callback for</param>
+        /// <param name="Func">The question callback (this must be a <see cref="GPContextQuestionFunc"/>)</param>
+        /// <param name="Data">User-specified data that will be included in the callback</param>
+        [DllImport(Constants.GPhoto2Lib, CharSet = CharSet.Ansi, ExactSpelling = true)]
+        private static extern void gp_context_set_question_func(IntPtr Context, IntPtr Func, IntPtr Data);
+
+
+        /// <summary>
+        /// Sets the callback for cancel notifications
+        /// </summary>
+        /// <param name="Context">The GPContext to set the callback for</param>
+        /// <param name="Func">The cancel notification callback (this must be a <see cref="GPContextCancelFunc"/>)</param>
+        /// <param name="Data">User-specified data that will be included in the callback</param>
+        [DllImport(Constants.GPhoto2Lib, CharSet = CharSet.Ansi, ExactSpelling = true)]
+        private static extern void gp_context_set_cancel_func(IntPtr Context, IntPtr Func, IntPtr Data);
+
+
+        /// <summary>
+        /// Sets the callback for info messages
+        /// </summary>
+        /// <param name="Context">The GPContext to set the callback for</param>
+        /// <param name="Func">The info message callback (this must be a <see cref="GPContextMessageFunc"/>)</param>
+        /// <param name="Data">User-specified data that will be included in the callback</param>
+        [DllImport(Constants.GPhoto2Lib, CharSet = CharSet.Ansi, ExactSpelling = true)]
+        private static extern void gp_context_set_message_func(IntPtr Context, IntPtr Func, IntPtr Data);
+
+        #endregion
+
         #region Properties, Fields, and Events
 
         /// <summary>
@@ -67,63 +178,63 @@ namespace GPhoto2.Net
         /// A handle to the <see cref="IdleCallback(IntPtr, IntPtr)"/> function,
         /// which will be registered with the underlying GPContext object
         /// </summary>
-        private readonly Interop.GPContextIdleFunc IdleCallbackDelegate;
+        private readonly GPContextIdleFunc IdleCallbackDelegate;
 
 
         /// <summary>
         /// A handle to the <see cref="ErrorCallback(IntPtr, string, IntPtr)"/> function,
         /// which will be registered with the underlying GPContext object
         /// </summary>
-        private readonly Interop.GPContextErrorFunc ErrorCallbackDelegate;
+        private readonly GPContextErrorFunc ErrorCallbackDelegate;
 
 
         /// <summary>
         /// A handle to the <see cref="ProgressStartCallback(IntPtr, float, string, IntPtr)"/> function,
         /// which will be registered with the underlying GPContext object
         /// </summary>
-        private readonly Interop.GPContextProgressStartFunc ProgressStartCallbackDelegate;
+        private readonly GPContextProgressStartFunc ProgressStartCallbackDelegate;
 
 
         /// <summary>
         /// A handle to the <see cref="ProgressUpdateCallback(IntPtr, uint, float, IntPtr)"/> function,
         /// which will be registered with the underlying GPContext object
         /// </summary>
-        private readonly Interop.GPContextProgressUpdateFunc ProgressUpdateCallbackDelegate;
+        private readonly GPContextProgressUpdateFunc ProgressUpdateCallbackDelegate;
 
 
         /// <summary>
         /// A handle to the <see cref="ProgressStopCallback(IntPtr, uint, IntPtr)"/> function,
         /// which will be registered with the underlying GPContext object
         /// </summary>
-        private readonly Interop.GPContextProgressStopFunc ProgressStopCallbackDelegate;
+        private readonly GPContextProgressStopFunc ProgressStopCallbackDelegate;
 
 
         /// <summary>
         /// A handle to the <see cref="StatusCallback(IntPtr, string, IntPtr)"/> function,
         /// which will be registered with the underlying GPContext object
         /// </summary>
-        private readonly Interop.GPContextStatusFunc StatusCallbackDelegate;
+        private readonly GPContextStatusFunc StatusCallbackDelegate;
 
 
         /// <summary>
         /// A handle to the <see cref="QuestionCallback(IntPtr, string, IntPtr)"/> function,
         /// which will be registered with the underlying GPContext object
         /// </summary>
-        private readonly Interop.GPContextQuestionFunc QuestionCallbackDelegate;
+        private readonly GPContextQuestionFunc QuestionCallbackDelegate;
 
 
         /// <summary>
         /// A handle to the <see cref="CancelCallback(IntPtr, IntPtr)"/> function,
         /// which will be registered with the underlying GPContext object
         /// </summary>
-        private readonly Interop.GPContextCancelFunc CancelCallbackDelegate;
+        private readonly GPContextCancelFunc CancelCallbackDelegate;
 
 
         /// <summary>
         /// A handle to the <see cref="MessageCallback(IntPtr, string, IntPtr)"/> function,
         /// which will be registered with the underlying GPContext object
         /// </summary>
-        private readonly Interop.GPContextMessageFunc MessageCallbackDelegate;
+        private readonly GPContextMessageFunc MessageCallbackDelegate;
 
 
         /// <summary>
@@ -139,15 +250,21 @@ namespace GPhoto2.Net
 
 
         /// <summary>
-        /// A pointer to the collection of loaded camera drivers.
+        /// The collection of loaded camera drivers
         /// </summary>
-        private readonly CameraAbilitiesList DriverList;
+        private CameraAbilitiesList DriverList;
+
+
+        /// <summary>
+        /// The collection of available I/O ports
+        /// </summary>
+        private PortInfoList PortList;
 
 
         /// <summary>
         /// A handle to the native GPContext object
         /// </summary>
-        internal IntPtr Handle { get; private set; }
+        internal IntPtr Handle { get; }
 
 
         /// <summary>
@@ -218,6 +335,8 @@ namespace GPhoto2.Net
             NextProgressID = 1;
             ProgressLock = new object();
             ProgressTargets = new Dictionary<uint, float>();
+            QuestionWaiter = new AutoResetEvent(false);
+            CancelWaiter = new AutoResetEvent(false);
 
             // Set up handles to callback delegates so they don't get garbage collected
             IdleCallbackDelegate = IdleCallback;
@@ -231,7 +350,7 @@ namespace GPhoto2.Net
             MessageCallbackDelegate = MessageCallback;
 
             // Create the underlying GPContext
-            Handle = Interop.gp_context_new();
+            Handle = gp_context_new();
             if(Handle == IntPtr.Zero)
             {
                 throw new Exception("Context creation failed.");
@@ -249,17 +368,22 @@ namespace GPhoto2.Net
             IntPtr MessageCallbackPtr = Marshal.GetFunctionPointerForDelegate(MessageCallbackDelegate);
 
             // Register the callbacks with the GPContext
-            Interop.gp_context_set_idle_func(Handle, IdleCallbackPtr, IntPtr.Zero);
-            Interop.gp_context_set_error_func(Handle, ErrorCallbackPtr, IntPtr.Zero);
-            Interop.gp_context_set_progress_funcs(Handle, ProgressStartCallbackPtr, 
+            gp_context_set_idle_func(Handle, IdleCallbackPtr, IntPtr.Zero);
+            gp_context_set_error_func(Handle, ErrorCallbackPtr, IntPtr.Zero);
+            gp_context_set_progress_funcs(Handle, ProgressStartCallbackPtr, 
                 ProgressUpdateCallbackPtr, ProgressStopCallbackPtr, IntPtr.Zero);
-            Interop.gp_context_set_status_func(Handle, StatusCallbackPtr, IntPtr.Zero);
-            Interop.gp_context_set_question_func(Handle, QuestionCallbackPtr, IntPtr.Zero);
-            Interop.gp_context_set_cancel_func(Handle, CancelCallbackPtr, IntPtr.Zero);
-            Interop.gp_context_set_message_func(Handle, MessageCallbackPtr, IntPtr.Zero);
+            gp_context_set_status_func(Handle, StatusCallbackPtr, IntPtr.Zero);
+            gp_context_set_question_func(Handle, QuestionCallbackPtr, IntPtr.Zero);
+            gp_context_set_cancel_func(Handle, CancelCallbackPtr, IntPtr.Zero);
+            gp_context_set_message_func(Handle, MessageCallbackPtr, IntPtr.Zero);
 
+            // Load all of the installed camera drivers
             DriverList = new CameraAbilitiesList(this);
             DriverList.LoadAvailableDrivers();
+
+            // Load all of the available I/O ports
+            PortList = new PortInfoList(this);
+            PortList.LoadAvailablePorts();
         }
 
 
@@ -444,37 +568,31 @@ namespace GPhoto2.Net
 
         #region IDisposable Support
 
-        private bool disposedValue = false; // To detect redundant calls
+        private bool DisposedValue = false; // To detect redundant calls
 
         protected virtual void Dispose(bool disposing)
         {
-            if (!disposedValue)
+            if (!DisposedValue)
             {
                 if (disposing)
                 {
-                    // TODO: dispose managed state (managed objects).
+                    DriverList.Dispose();
+                    PortList.Dispose();
                 }
 
-                if(Handle != IntPtr.Zero)
-                {
-                    Interop.gp_context_unref(Handle);
-                    Handle = IntPtr.Zero;
-                }
-
-                disposedValue = true;
+                gp_context_unref(Handle);
+                DisposedValue = true;
             }
         }
 
         ~Context()
         {
-            // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
             Dispose(false);
         }
 
         // This code added to correctly implement the disposable pattern.
         public void Dispose()
         {
-            // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
             Dispose(true);
             GC.SuppressFinalize(this);
         }
