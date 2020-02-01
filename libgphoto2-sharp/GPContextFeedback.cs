@@ -18,7 +18,7 @@ namespace GPhoto2.Net
 {
     /// <summary>
     /// An application can return special values back to the libgphoto2
-    /// progress callback handling functions.If "Cancel" is selected,
+    /// progress callback handling functions. If "Cancel" is selected,
     /// libgphoto2 and the camera driver will try to cancel transfer.
     /// </summary>
     public enum GPContextFeedback

@@ -18,6 +18,7 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading;
 
 namespace GPhoto2.Net
 {
@@ -40,6 +41,20 @@ namespace GPhoto2.Net
         /// A sync lock to safely handle progress starts, updates, and stops
         /// </summary>
         private readonly object ProgressLock;
+
+
+        /// <summary>
+        /// A thread-safe waiter that will block until the user responds to a question
+        /// (probably on a different thread, such as the UI thread)
+        /// </summary>
+        private readonly AutoResetEvent QuestionWaiter;
+
+
+        /// <summary>
+        /// A thread-safe waiter that will block until the user responds to a cancel
+        /// request (probably on a different thread, such as the UI thread)
+        /// </summary>
+        private readonly AutoResetEvent CancelWaiter;
 
 
         /// <summary>
@@ -84,9 +99,55 @@ namespace GPhoto2.Net
 
 
         /// <summary>
+        /// A handle to the <see cref="StatusCallback(IntPtr, string, IntPtr)"/> function,
+        /// which will be registered with the underlying GPContext object
+        /// </summary>
+        private readonly Interop.GPContextStatusFunc StatusCallbackDelegate;
+
+
+        /// <summary>
+        /// A handle to the <see cref="QuestionCallback(IntPtr, string, IntPtr)"/> function,
+        /// which will be registered with the underlying GPContext object
+        /// </summary>
+        private readonly Interop.GPContextQuestionFunc QuestionCallbackDelegate;
+
+
+        /// <summary>
+        /// A handle to the <see cref="CancelCallback(IntPtr, IntPtr)"/> function,
+        /// which will be registered with the underlying GPContext object
+        /// </summary>
+        private readonly Interop.GPContextCancelFunc CancelCallbackDelegate;
+
+
+        /// <summary>
+        /// A handle to the <see cref="MessageCallback(IntPtr, string, IntPtr)"/> function,
+        /// which will be registered with the underlying GPContext object
+        /// </summary>
+        private readonly Interop.GPContextMessageFunc MessageCallbackDelegate;
+
+
+        /// <summary>
+        /// The user's response to a question
+        /// </summary>
+        private GPContextFeedback QuestionResponse;
+
+
+        /// <summary>
+        /// The user's response to a cancel query
+        /// </summary>
+        private GPContextFeedback CancelResponse;
+
+
+        /// <summary>
+        /// A pointer to the collection of loaded camera drivers.
+        /// </summary>
+        private readonly CameraAbilitiesList DriverList;
+
+
+        /// <summary>
         /// A handle to the native GPContext object
         /// </summary>
-        internal IntPtr GPContextHandle { get; private set; }
+        internal IntPtr Handle { get; private set; }
 
 
         /// <summary>
@@ -121,6 +182,31 @@ namespace GPhoto2.Net
         /// </summary>
         public event EventHandler<uint> ProgressStopped;
 
+
+        /// <summary>
+        /// This is trigered when the context updates its status.
+        /// </summary>
+        public event EventHandler<string> StatusNotification;
+
+
+        /// <summary>
+        /// This is triggered when the context asks a question to the user.
+        /// </summary>
+        public event EventHandler<string> QuestionAsked;
+
+
+        /// <summary>
+        /// This is triggered when the context asks the user if they want to
+        /// cancel the current operation.
+        /// </summary>
+        public event EventHandler CancelRequested;
+
+
+        /// <summary>
+        /// This is triggered when the context sends a message to the user.
+        /// </summary>
+        public event EventHandler<string> MessageReceived;
+
         #endregion
 
         /// <summary>
@@ -139,10 +225,14 @@ namespace GPhoto2.Net
             ProgressStartCallbackDelegate = ProgressStartCallback;
             ProgressUpdateCallbackDelegate = ProgressUpdateCallback;
             ProgressStopCallbackDelegate = ProgressStopCallback;
+            StatusCallbackDelegate = StatusCallback;
+            QuestionCallbackDelegate = QuestionCallback;
+            CancelCallbackDelegate = CancelCallback;
+            MessageCallbackDelegate = MessageCallback;
 
             // Create the underlying GPContext
-            GPContextHandle = Interop.gp_context_new();
-            if(GPContextHandle == IntPtr.Zero)
+            Handle = Interop.gp_context_new();
+            if(Handle == IntPtr.Zero)
             {
                 throw new Exception("Context creation failed.");
             }
@@ -153,12 +243,23 @@ namespace GPhoto2.Net
             IntPtr ProgressStartCallbackPtr = Marshal.GetFunctionPointerForDelegate(ProgressStartCallbackDelegate);
             IntPtr ProgressUpdateCallbackPtr = Marshal.GetFunctionPointerForDelegate(ProgressUpdateCallbackDelegate);
             IntPtr ProgressStopCallbackPtr = Marshal.GetFunctionPointerForDelegate(ProgressStopCallbackDelegate);
+            IntPtr StatusCallbackPtr = Marshal.GetFunctionPointerForDelegate(StatusCallbackDelegate);
+            IntPtr QuestionCallbackPtr = Marshal.GetFunctionPointerForDelegate(QuestionCallbackDelegate);
+            IntPtr CancelCallbackPtr = Marshal.GetFunctionPointerForDelegate(CancelCallbackDelegate);
+            IntPtr MessageCallbackPtr = Marshal.GetFunctionPointerForDelegate(MessageCallbackDelegate);
 
             // Register the callbacks with the GPContext
-            Interop.gp_context_set_idle_func(GPContextHandle, IdleCallbackPtr, IntPtr.Zero);
-            Interop.gp_context_set_error_func(GPContextHandle, ErrorCallbackPtr, IntPtr.Zero);
-            Interop.gp_context_set_progress_funcs(GPContextHandle, ProgressStartCallbackPtr, 
+            Interop.gp_context_set_idle_func(Handle, IdleCallbackPtr, IntPtr.Zero);
+            Interop.gp_context_set_error_func(Handle, ErrorCallbackPtr, IntPtr.Zero);
+            Interop.gp_context_set_progress_funcs(Handle, ProgressStartCallbackPtr, 
                 ProgressUpdateCallbackPtr, ProgressStopCallbackPtr, IntPtr.Zero);
+            Interop.gp_context_set_status_func(Handle, StatusCallbackPtr, IntPtr.Zero);
+            Interop.gp_context_set_question_func(Handle, QuestionCallbackPtr, IntPtr.Zero);
+            Interop.gp_context_set_cancel_func(Handle, CancelCallbackPtr, IntPtr.Zero);
+            Interop.gp_context_set_message_func(Handle, MessageCallbackPtr, IntPtr.Zero);
+
+            DriverList = new CameraAbilitiesList(this);
+            DriverList.LoadAvailableDrivers();
         }
 
 
@@ -169,10 +270,39 @@ namespace GPhoto2.Net
         /// <returns>A collection of available cameras</returns>
         public IEnumerable<Camera> GetCameras()
         {
-            // TODO
+            GPResult result = Interop.gp_list_new(out IntPtr cameraList);
+            if(result != GPResult.Ok)
+            {
+                throw new Exception($"Creating a new camera list failed: {result}");
+            }
+
+
+
+
             return null;
         }
 
+
+        /// <summary>
+        /// Sets the user's response to a question. This is a thread-safe call.
+        /// </summary>
+        /// <param name="Response">The user's response to the question</param>
+        public void SetQuestionResponse(GPContextFeedback Response)
+        {
+            QuestionResponse = Response;
+            QuestionWaiter.Set();
+        }
+
+
+        /// <summary>
+        /// Sets the user's response to a cancel request. This is a thread-safe call.
+        /// </summary>
+        /// <param name="Response">The user's response to the cancel request</param>
+        public void SetCancelResponse(GPContextFeedback Response)
+        {
+            CancelResponse = Response;
+            CancelWaiter.Set();
+        }
 
         #region Callbacks
 
@@ -257,6 +387,59 @@ namespace GPhoto2.Net
             ErrorOccurred?.Invoke(this, ErrorMessage);
         }
 
+
+        /// <summary>
+        /// Triggers the status notification event when the underlying GPContext calls this callback.
+        /// </summary>
+        /// <param name="Context">Not used</param>
+        /// <param name="Text">The new status message</param>
+        /// <param name="Data">Not used</param>
+        private void StatusCallback(IntPtr Context, string Text, IntPtr Data)
+        {
+            StatusNotification?.Invoke(this, Text);
+        }
+
+
+        /// <summary>
+        /// Triggers the question asked event when the underlying GPContext calls this callback.
+        /// </summary>
+        /// <param name="Context">Not used</param>
+        /// <param name="Text">The text of the question to display to the user</param>
+        /// <param name="Data">Not used</param>
+        /// <returns>A <see cref="GPContextFeedback"/> value indicating the user's response</returns>
+        private GPContextFeedback QuestionCallback(IntPtr Context, string Text, IntPtr Data)
+        {
+            QuestionAsked?.Invoke(this, Text);
+            QuestionWaiter.WaitOne();
+            return QuestionResponse;
+        }
+
+
+        /// <summary>
+        /// Triggers the cancel requested event when the underlying GPContext calls this callback.
+        /// </summary>
+        /// <param name="Context">Not used</param>
+        /// <param name="Data">Not used</param>
+        /// <returns>A <see cref="GPContextFeedback"/> value indicating the user's response</returns>
+        private GPContextFeedback CancelCallback(IntPtr Context, IntPtr Data)
+        {
+            CancelRequested?.Invoke(this, null);
+            CancelWaiter.WaitOne();
+            return CancelResponse;
+        }
+
+
+        /// <summary>
+        /// Triggers the message event when the underlying GPContext calls this callback.
+        /// </summary>
+        /// <param name="Context">Not used</param>
+        /// <param name="Text">The text of the message to display to the user</param>
+        /// <param name="Data">Not used</param>
+        private void MessageCallback(IntPtr Context, string Text, IntPtr Data)
+        {
+            MessageReceived?.Invoke(this, Text);
+        }
+
         #endregion
 
         #region IDisposable Support
@@ -272,10 +455,10 @@ namespace GPhoto2.Net
                     // TODO: dispose managed state (managed objects).
                 }
 
-                if(GPContextHandle != IntPtr.Zero)
+                if(Handle != IntPtr.Zero)
                 {
-                    Interop.gp_context_unref(GPContextHandle);
-                    GPContextHandle = IntPtr.Zero;
+                    Interop.gp_context_unref(Handle);
+                    Handle = IntPtr.Zero;
                 }
 
                 disposedValue = true;

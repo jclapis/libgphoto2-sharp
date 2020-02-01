@@ -14,13 +14,17 @@
  * limitations under the License.
  * ======================================================================== */
 
-using System;
-using System.Collections.Generic;
-using System.Text;
-
 namespace GPhoto2.Net
 {
+    /// <summary>
+    /// This contains a list of constants that are used by the library internally.
+    /// </summary>
     internal static class Constants
     {
+        /// <summary>
+        /// The name of the library on the filesystem (used by P/Invoke to load it)
+        /// </summary>
+        public const string GPhoto2Lib = "libgphoto2";
+
     }
 }

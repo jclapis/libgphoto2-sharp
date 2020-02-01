@@ -162,10 +162,34 @@ namespace GPhoto2.Net
         /// </summary>
         /// <param name="Camera">The camera to initialize and connect to</param>
         /// <param name="Context">The context that owns the camera</param>
-        /// <returns></returns>
+        /// <returns>A status code indicating the result of the operation</returns>
         [DllImport(GPhoto2Lib, CharSet = CharSet.Ansi, ExactSpelling = true)]
         public static extern GPResult gp_camera_init(IntPtr Camera, IntPtr Context);
 
         #endregion
+
+
+        #region gphoto2-list.h
+
+        /// <summary>
+        /// Creates a new camera list.
+        /// </summary>
+        /// <param name="CameraList">[OUT] The pointer to the list being created</param>
+        /// <returns>A status code indicating the result of the operation</returns>
+        [DllImport(GPhoto2Lib, CharSet = CharSet.Ansi, ExactSpelling = true)]
+        public static extern GPResult gp_list_new(out IntPtr CameraList);
+
+
+        /// <summary>
+        /// Frees a camera list.
+        /// </summary>
+        /// <param name="CameraList">The list to destroy</param>
+        /// <returns>A status code indicating the result of the operation</returns>
+        [DllImport(GPhoto2Lib, CharSet = CharSet.Ansi, ExactSpelling = true)]
+        public static extern GPResult gp_list_free(IntPtr CameraList);
+
+        #endregion
+
+
     }
 }
