@@ -15,55 +15,10 @@
  * ======================================================================== */
 
 using System;
-using System.Collections.Generic;
 using System.Runtime.InteropServices;
-using System.Text;
 
 namespace GPhoto2.Net
 {
-    /// <summary>
-    /// The gphoto port type.
-    /// </summary>
-    [Flags]
-    internal enum GPPortType
-    {
-        /// <summary>
-        /// No specific type associated.
-        /// </summary>
-        None,
-
-        /// <summary>
-        /// Serial port.
-        /// </summary>
-        Serial,
-
-        /// <summary>
-        /// USB port.
-        /// </summary>
-        USB,
-
-        /// <summary>
-        /// Disk / local mountpoint port.
-        /// </summary>
-        Disk,
-
-        /// <summary>
-        /// PTP/IP port.
-        /// </summary>
-        PTP_IP,
-
-        /// <summary>
-        /// Direct I/O to a USB mass storage device.
-        /// </summary>
-        UsbDiskDirect,
-
-        /// <summary>
-        /// USB Mass Storage raw SCSI port.
-        /// </summary>
-        UsbSCSI
-    }
-
-
     /// <summary>
     /// This represents a collection of information containers around the ports that
     /// are currently available on the system.
@@ -75,28 +30,49 @@ namespace GPhoto2.Net
         /// <summary>
         /// Creates a new list of port infos.
         /// </summary>
-        /// <param name="Info">[OUT] The handle to the new list of port infos</param>
+        /// <param name="List">[OUT] The handle to the new list of port infos</param>
         /// <returns>A status code indicating the result of the operation</returns>
         [DllImport(Constants.GPhoto2Lib, CharSet = CharSet.Ansi, ExactSpelling = true)]
-        private static extern GPResult gp_port_info_list_new(out IntPtr Info);
+        private static extern GPResult gp_port_info_list_new(out IntPtr List);
 
 
         /// <summary>
         /// Frees a list of port infos.
         /// </summary>
-        /// <param name="Info">The list of port infos to destroy</param>
+        /// <param name="List">This <see cref="PortInfoList"/> handle</param>
         /// <returns>A status code indicating the result of the operation</returns>
         [DllImport(Constants.GPhoto2Lib, CharSet = CharSet.Ansi, ExactSpelling = true)]
-        private static extern GPResult gp_port_info_list_free(IntPtr Info);
+        private static extern GPResult gp_port_info_list_free(IntPtr List);
 
 
         /// <summary>
         /// Searches the system for io-drivers and appends them to the list.
         /// </summary>
-        /// <param name="Info">The list of port infos that will contain the IO drivers</param>
+        /// <param name="List">This <see cref="PortInfoList"/> handle</param>
         /// <returns>A status code indicating the result of the operation</returns>
         [DllImport(Constants.GPhoto2Lib, CharSet = CharSet.Ansi, ExactSpelling = true)]
-        private static extern GPResult gp_port_info_list_load(IntPtr Info);
+        private static extern GPResult gp_port_info_list_load(IntPtr List);
+
+
+        /// <summary>
+        /// Looks for an entry in the list with the supplied path.
+        /// </summary>
+        /// <param name="List">This <see cref="PortInfoList"/> handle</param>
+        /// <param name="Path">The path to look for</param>
+        /// <returns>The index of the entry or a gphoto2 error code</returns>
+        [DllImport(Constants.GPhoto2Lib, CharSet = CharSet.Ansi, ExactSpelling = true)]
+        private static extern int gp_port_info_list_lookup_path(IntPtr List, string Path);
+
+
+        /// <summary>
+        /// Get port information of specific entry
+        /// </summary>
+        /// <param name="List">This <see cref="PortInfoList"/> handle</param>
+        /// <param name="Index"The index of the entry></param>
+        /// <param name="Info">[OUT] >A pointer to the current entry</param>
+        /// <returns>A status code indicating the result of the operation</returns>
+        [DllImport(Constants.GPhoto2Lib, CharSet = CharSet.Ansi, ExactSpelling = true)]
+        private static extern GPResult gp_port_info_list_get_info(IntPtr List, int Index, out IntPtr Info);
 
         #endregion
 
@@ -145,6 +121,30 @@ namespace GPhoto2.Net
             {
                 throw new Exception($"Loading available ports failed: {result}");
             }
+        }
+
+        
+        /// <summary>
+        /// Gets the index of the port info 
+        /// </summary>
+        /// <param name="Path"></param>
+        /// <returns></returns>
+        public GPPortInfo FindInfoForPath(string Path)
+        {
+            int index = gp_port_info_list_lookup_path(Handle, Path);
+            if(index < (int)GPResult.Ok)
+            {
+                throw new Exception($"Error finding port info for path {Path}: {(GPResult)index}");
+            }
+
+            GPResult result = gp_port_info_list_get_info(Handle, index, out IntPtr infoHandle);
+            if(result != GPResult.Ok)
+            {
+                throw new Exception($"Error getting the port info for index {index}: {result}");
+            }
+
+            GPPortInfo info = new GPPortInfo(infoHandle);
+            return info;
         }
 
 

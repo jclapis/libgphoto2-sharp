@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  * ======================================================================== */
- 
+
 using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
@@ -250,18 +250,6 @@ namespace GPhoto2.Net
 
 
         /// <summary>
-        /// The collection of loaded camera drivers
-        /// </summary>
-        private CameraAbilitiesList DriverList;
-
-
-        /// <summary>
-        /// The collection of available I/O ports
-        /// </summary>
-        private PortInfoList PortList;
-
-
-        /// <summary>
         /// A handle to the native GPContext object
         /// </summary>
         internal IntPtr Handle { get; }
@@ -351,7 +339,7 @@ namespace GPhoto2.Net
 
             // Create the underlying GPContext
             Handle = gp_context_new();
-            if(Handle == IntPtr.Zero)
+            if (Handle == IntPtr.Zero)
             {
                 throw new Exception("Context creation failed.");
             }
@@ -370,20 +358,12 @@ namespace GPhoto2.Net
             // Register the callbacks with the GPContext
             gp_context_set_idle_func(Handle, IdleCallbackPtr, IntPtr.Zero);
             gp_context_set_error_func(Handle, ErrorCallbackPtr, IntPtr.Zero);
-            gp_context_set_progress_funcs(Handle, ProgressStartCallbackPtr, 
+            gp_context_set_progress_funcs(Handle, ProgressStartCallbackPtr,
                 ProgressUpdateCallbackPtr, ProgressStopCallbackPtr, IntPtr.Zero);
             gp_context_set_status_func(Handle, StatusCallbackPtr, IntPtr.Zero);
             gp_context_set_question_func(Handle, QuestionCallbackPtr, IntPtr.Zero);
             gp_context_set_cancel_func(Handle, CancelCallbackPtr, IntPtr.Zero);
             gp_context_set_message_func(Handle, MessageCallbackPtr, IntPtr.Zero);
-
-            // Load all of the installed camera drivers
-            DriverList = new CameraAbilitiesList(this);
-            DriverList.LoadAvailableDrivers();
-
-            // Load all of the available I/O ports
-            PortList = new PortInfoList(this);
-            PortList.LoadAvailablePorts();
         }
 
 
@@ -394,16 +374,38 @@ namespace GPhoto2.Net
         /// <returns>A collection of available cameras</returns>
         public IEnumerable<Camera> GetCameras()
         {
-            GPResult result = Interop.gp_list_new(out IntPtr cameraList);
-            if(result != GPResult.Ok)
+            List<Camera> cameras = new List<Camera>();
+
+            using (CameraAbilitiesList abilitiesList = new CameraAbilitiesList(this))
+            using (PortInfoList portInfoList = new PortInfoList(this))
             {
-                throw new Exception($"Creating a new camera list failed: {result}");
+                // Load all of the installed camera drivers and available I/O Ports
+                abilitiesList.LoadAvailableDrivers();
+                portInfoList.LoadAvailablePorts();
+
+                using (CameraList cameraList = abilitiesList.FindAllConnectedCameras(portInfoList))
+                {
+                    for (int i = 0; i < cameraList.Count; i++)
+                    {
+                        string cameraName = cameraList.GetName(i);
+                        string cameraPath = cameraList.GetPort(i);
+
+                        CameraAbilities abilities = abilitiesList.FindAbilitiesForCamera(cameraName);
+                        GPPortInfo portInfo = portInfoList.FindInfoForPath(cameraPath);
+
+                        Camera camera = new Camera(this, abilities, portInfo);
+                        cameras.Add(camera);
+                    }
+                }
             }
 
+            return cameras;
+        }
 
 
+        public void ActivateCamera(Camera Camera)
+        {
 
-            return null;
         }
 
 
@@ -451,7 +453,7 @@ namespace GPhoto2.Net
         /// <returns>The unique identifier for this operation</returns>
         private uint ProgressStartCallback(IntPtr Context, float Target, string Text, IntPtr Data)
         {
-            lock(ProgressLock)
+            lock (ProgressLock)
             {
                 uint eventID = NextProgressID;
                 NextProgressID++;
@@ -472,9 +474,9 @@ namespace GPhoto2.Net
         /// <param name="Data">Not used</param>
         private void ProgressUpdateCallback(IntPtr Context, uint ID, float Current, IntPtr Data)
         {
-            lock(ProgressLock)
+            lock (ProgressLock)
             {
-                if(!ProgressTargets.TryGetValue(ID, out float target))
+                if (!ProgressTargets.TryGetValue(ID, out float target))
                 {
                     // Ignore it, or log it or something.
                 }
@@ -492,7 +494,7 @@ namespace GPhoto2.Net
         /// <param name="Data">Not used</param>
         private void ProgressStopCallback(IntPtr Context, uint ID, IntPtr Data)
         {
-            lock(ProgressLock)
+            lock (ProgressLock)
             {
                 ProgressTargets.Remove(ID);
                 ProgressStopped?.Invoke(this, ID);
@@ -576,8 +578,7 @@ namespace GPhoto2.Net
             {
                 if (disposing)
                 {
-                    DriverList.Dispose();
-                    PortList.Dispose();
+                    // Probably destroy the cameras here?
                 }
 
                 gp_context_unref(Handle);

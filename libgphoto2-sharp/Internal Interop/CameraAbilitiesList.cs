@@ -139,39 +139,50 @@ namespace GPhoto2.Net
         }
 
 
+        /// <summary>
+        /// Scans the computer to find all of the devices that are supported by the installed drivers.
+        /// </summary>
+        /// <param name="PortsToScan">The ports to scan for connected devices</param>
+        /// <returns>A list of connected cameras (or rather, [model, port] string pairs)</returns>
         public CameraList FindAllConnectedCameras(PortInfoList PortsToScan)
         {
             CameraList discoveredCameras = new CameraList(Context);
 
             GPResult result = gp_abilities_list_detect(Handle, PortsToScan.Handle, discoveredCameras.Handle, Context.Handle);
-            if(result != GPResult.Ok)
+            if (result != GPResult.Ok)
             {
                 throw new Exception($"Error detecting available cameras: {result}");
             }
-            for(int i = 0; i < discoveredCameras.Count; i++)
-            {
-                string cameraName = discoveredCameras.GetName(i);
-                
-                // Get the index of the driver that supports this camera
-                int driverIndex = gp_abilities_list_lookup_model(Handle, cameraName);
-                if(driverIndex < (int)GPResult.Ok)
-                {
-                    result = (GPResult)driverIndex;
-                    throw new Exception($"Failed to load driver for camera {cameraName}: {result}");
-                }
-
-                // Get the list of abilities that the driver supports
-                result = gp_abilities_list_get_abilities(Handle, driverIndex, out CameraAbilities cameraAbilities);
-                if(result != GPResult.Ok)
-                {
-                    throw new Exception($"Failed to get abilities for camera {cameraName}: {result}");
-                }
-
-                // TODO: RESUME AT gphoto2-camera.c, LINE 761!
-
-            }
 
             return discoveredCameras;
+        }
+
+
+        /// <summary>
+        /// Finds the list of capabilities that the driver for the provided camera supports.
+        /// </summary>
+        /// <param name="CameraName">The name of the camera to get the abiliteis for</param>
+        /// <returns>The abilities that the camera supports</returns>
+        public CameraAbilities FindAbilitiesForCamera(string CameraName)
+        {
+            GPResult result;
+
+            // Get the index of the driver that supports this camera
+            int driverIndex = gp_abilities_list_lookup_model(Handle, CameraName);
+            if (driverIndex < (int)GPResult.Ok)
+            {
+                result = (GPResult)driverIndex;
+                throw new Exception($"Failed to load driver for camera {CameraName}: {result}");
+            }
+
+            // Get the list of abilities that the driver supports
+            result = gp_abilities_list_get_abilities(Handle, driverIndex, out CameraAbilities cameraAbilities);
+            if (result != GPResult.Ok)
+            {
+                throw new Exception($"Failed to get abilities for camera {CameraName}: {result}");
+            }
+
+            return cameraAbilities;
         }
 
 

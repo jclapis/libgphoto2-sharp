@@ -15,14 +15,12 @@
  * ======================================================================== */
 
 using System;
-using System.Runtime.InteropServices;
 
 namespace GPhoto2.Net
-{
-    /// <summary>
-    /// Current implementation status of the camera driver.
-    /// </summary>
-    internal enum CameraDriverStatus
+{/// <summary>
+ /// Current implementation status of the camera driver.
+ /// </summary>
+    public enum CameraDriverQuality
     {
         /// <summary>
         /// Driver is production ready.
@@ -50,7 +48,7 @@ namespace GPhoto2.Net
     /// Type of the device represented.
     /// </summary>
     [Flags]
-    internal enum GPhotoDeviceType
+    public enum GPhotoDeviceType
     {
         /// <summary>
         /// Traditional still camera
@@ -69,7 +67,7 @@ namespace GPhoto2.Net
     /// Some drivers might support additional dynamic capabilities (like the PTP driver).
     /// </summary>
     [Flags]
-    internal enum CameraOperation
+    public enum CameraOperation
     {
         /// <summary>
         /// No remote control operation supported.
@@ -112,7 +110,7 @@ namespace GPhoto2.Net
     /// A bitmask of image related operations of the device.
     /// </summary>
     [Flags]
-    internal enum CameraFileOperation
+    public enum CameraFileOperation
     {
         /// <summary>
         /// No special file operations, just download.
@@ -150,7 +148,7 @@ namespace GPhoto2.Net
     /// A bitmask of filesystem related operations of the device.
     /// </summary>
     [Flags]
-    internal enum CameraFolderOperation
+    public enum CameraFolderOperation
     {
         /// <summary>
         /// No special filesystem operation.
@@ -180,71 +178,45 @@ namespace GPhoto2.Net
 
 
     /// <summary>
-    /// Describes the properties of a specific camera.
+    /// The gphoto port type.
     /// </summary>
-    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
-    internal struct CameraAbilities
+    [Flags]
+    public enum GPPortType
     {
         /// <summary>
-        /// The name of the camera model
+        /// No specific type associated.
         /// </summary>
-        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 128)]
-        public string Model;
+        None,
 
         /// <summary>
-        /// Driver quality
+        /// Serial port.
         /// </summary>
-        public CameraDriverStatus Status;
+        Serial,
 
         /// <summary>
-        /// Supported port types.
+        /// USB port.
         /// </summary>
-        public GPPortType Port;
+        USB,
 
         /// <summary>
-        /// Supported serial port speeds (terminated with a value of 0).
+        /// Disk / local mountpoint port.
         /// </summary>
-        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 64)]
-        public int[] Speed;
+        Disk,
 
         /// <summary>
-        /// Camera operation funcs
+        /// PTP/IP port.
         /// </summary>
-        public CameraOperation Operations;
+        PTP_IP,
 
         /// <summary>
-        /// Camera file op funcs
+        /// Direct I/O to a USB mass storage device.
         /// </summary>
-        public CameraFileOperation FileOperations;
+        UsbDiskDirect,
 
         /// <summary>
-        /// Camera folder op funcs
+        /// USB Mass Storage raw SCSI port.
         /// </summary>
-        public CameraFolderOperation FolderOperations;
-
-        /// <summary>
-        /// USB Vendor D
-        /// </summary>
-        public int UsbVendor;
-
-        /// <summary>
-        /// USB Product ID
-        /// </summary>
-        public int UsbProduct;
-
-        /// <summary>
-        /// USB device class
-        /// </summary>
-        public int UsbClass;
-
-        /// <summary>
-        /// USB device subclass
-        /// </summary>
-        public int UsbSubclass;
-
-        /// <summary>
-        /// USB device protocol
-        /// </summary>
-        public int UsbProtocol;
+        UsbSCSI
     }
+
 }

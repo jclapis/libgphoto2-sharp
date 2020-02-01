@@ -66,6 +66,17 @@ namespace GPhoto2.Net
         [DllImport(Constants.GPhoto2Lib, CharSet = CharSet.Ansi, ExactSpelling = true)]
         private static extern GPResult gp_list_get_name(IntPtr List, int Index, out string Name);
 
+
+        /// <summary>
+        /// Gets the port of the camera at the specified index.
+        /// </summary>
+        /// <param name="List">The handle to this <see cref="CameraList"/></param>
+        /// <param name="Index">The index of the camera being queried</param>
+        /// <param name="Port">[OUT] The port of the camera</param>
+        /// <returns>A status code indicating the result of the operation</returns>
+        [DllImport(Constants.GPhoto2Lib, CharSet = CharSet.Ansi, ExactSpelling = true)]
+        private static extern GPResult gp_list_get_value(IntPtr List, int Index, out string Port);
+
         #endregion
 
 
@@ -134,6 +145,28 @@ namespace GPhoto2.Net
             }
 
             return name;
+        }
+
+
+        /// <summary>
+        /// Gets the port of the camera at the provided index.
+        /// </summary>
+        /// <param name="Index">The index of the camera to get the port for</param>
+        /// <returns>The port of the camera at the given index</returns>
+        public string GetPort(int Index)
+        {
+            if (DisposedValue)
+            {
+                throw new Exception(nameof(CameraList));
+            }
+
+            GPResult result = gp_list_get_value(Handle, Index, out string port);
+            if (result != GPResult.Ok)
+            {
+                throw new Exception($"Error getting name for camera {Index}: {result}");
+            }
+
+            return port;
         }
 
 
