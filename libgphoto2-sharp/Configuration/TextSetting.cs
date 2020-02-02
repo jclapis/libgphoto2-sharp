@@ -52,7 +52,7 @@ namespace GPhoto2.Net
 
         }
 
-        protected override string GetValueAsString()
+        public override string ToString()
         {
             GPResult result = gp_widget_get_value(Widget.Handle, out string value);
             if (result != GPResult.Ok)
@@ -60,7 +60,7 @@ namespace GPhoto2.Net
                 throw new Exception($"Error getting current value for {Title}: {result}");
             }
 
-            return value;
+            return $"{Title} (Text): {value}";
         }
 
     }

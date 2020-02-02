@@ -61,9 +61,9 @@ namespace GPhoto2.Net
 
         }
 
-        protected override string GetValueAsString()
+        public override string ToString()
         {
-            return "<Callback>";
+            return $"{Title} (Custom): <Callback>";
         }
 
     }

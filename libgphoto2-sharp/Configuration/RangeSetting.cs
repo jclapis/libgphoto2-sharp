@@ -79,11 +79,6 @@ namespace GPhoto2.Net
             Increment = increment;
         }
 
-        protected override string GetValueAsString()
-        {
-            return string.Empty;
-        }
-
         public override string ToString()
         {
             GPResult result = gp_widget_get_value(Widget.Handle, out float value);
@@ -92,7 +87,7 @@ namespace GPhoto2.Net
                 throw new Exception($"Error getting value for {Title}: {result}");
             }
 
-            return $"{Title}: Min = {Minimum}, Max = {Maximum}, Increment = {Increment}, Current Value = {value}";
+            return $"{Title} (Range): Min = {Minimum}, Max = {Maximum}, Increment = {Increment}, Current Value = {value}";
         }
 
     }

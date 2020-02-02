@@ -94,15 +94,10 @@ namespace GPhoto2.Net
             Options = options;
         }
 
-        protected override string GetValueAsString()
-        {
-            return string.Empty;
-        }
-
         public override string ToString()
         {
             StringBuilder builder = new StringBuilder();
-            builder.Append($"{Title}: Options = ");
+            builder.Append($"{Title} (Selection): Options = ");
             builder.Append(Options[0]);
 
             for(int i = 1; i < Options.Count; i++)

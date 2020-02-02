@@ -46,13 +46,15 @@ namespace GPhoto2.Net
 
         #endregion
 
+        private readonly DateTime UnixEpoch;
+
         internal DateSetting(CameraWidget Widget)
             : base(Widget)
         {
-
+            UnixEpoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).ToLocalTime();
         }
 
-        protected override string GetValueAsString()
+        public override string ToString()
         {
             GPResult result = gp_widget_get_value(Widget.Handle, out int value);
             if(result != GPResult.Ok)
@@ -60,7 +62,8 @@ namespace GPhoto2.Net
                 throw new Exception($"Error getting value for {Title}: {result}");
             }
 
-            return value.ToString();
+            DateTime time = UnixEpoch.AddSeconds(value);
+            return $"{Title} (Date): {time}";
         }
 
     }

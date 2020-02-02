@@ -38,11 +38,5 @@ namespace GPhoto2.Net
             Info = Widget.Info;
         }
 
-        public override string ToString()
-        {
-            return $"{Title}: {GetValueAsString()}";
-        }
-
-        protected abstract string GetValueAsString();
     }
 }
