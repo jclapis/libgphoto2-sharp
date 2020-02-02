@@ -73,7 +73,7 @@ namespace GPhoto2.Net
         /// <summary>
         /// Opens a connection to the camera.
         /// </summary>
-        /// <param name="Camera">The camera to connect to</param>
+        /// <param name="Camera">This <see cref="Camera"/> handle</param>
         /// <param name="Context">The context that owns the camera</param>
         /// <returns>A status code indicating the result of the operation</returns>
         [DllImport(Constants.GPhoto2Lib, CharSet = CharSet.Ansi, ExactSpelling = true)]
@@ -83,11 +83,22 @@ namespace GPhoto2.Net
         /// <summary>
         /// Closes a connection to the camera.
         /// </summary>
-        /// <param name="Camera">The camera to close</param>
+        /// <param name="Camera">This <see cref="Camera"/> handle</param>
         /// <param name="Context">The context that owns the camera</param>
         /// <returns>A status code indicating the result of the operation</returns>
         [DllImport(Constants.GPhoto2Lib, CharSet = CharSet.Ansi, ExactSpelling = true)]
         private static extern GPResult gp_camera_exit(IntPtr Camera, IntPtr Context);
+
+
+        /// <summary>
+        /// Retrieve the configuration window for the camera.
+        /// </summary>
+        /// <param name="Camera">This <see cref="Camera"/> handle</param>
+        /// <param name="Window">[OUT] The <see cref="CameraWidget"/> handle for this camera's configuration</param>
+        /// <param name="Context">The context that owns the camera</param>
+        /// <returns>A status code indicating the result of the operation</returns>
+        [DllImport(Constants.GPhoto2Lib, CharSet = CharSet.Ansi, ExactSpelling = true)]
+        private static extern GPResult gp_camera_get_config(IntPtr Camera, out IntPtr Window, IntPtr Context);
 
         #endregion
 
@@ -152,6 +163,9 @@ namespace GPhoto2.Net
         public USBInfo USBInfo { get; }
 
 
+        public CameraConfiguration Configuration { get; }
+
+
         /// <summary>
         /// Creates a new <see cref="Camera"/> instance.
         /// </summary>
@@ -209,6 +223,14 @@ namespace GPhoto2.Net
                 Abilities.UsbClass,
                 Abilities.UsbSubclass,
                 Abilities.UsbProtocol);
+
+            result = gp_camera_get_config(Handle, out IntPtr widgetHandle, Context.Handle);
+            if (result != GPResult.Ok)
+            {
+                throw new Exception($"Error getting camera config: {result}");
+            }
+            CameraWidget widget = new CameraWidget(widgetHandle);
+            Configuration = new CameraConfiguration(widget);
         }
 
 

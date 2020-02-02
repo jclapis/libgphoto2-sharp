@@ -18,6 +18,7 @@ using GPhoto2.Net;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 
 namespace TestConsole
 {
@@ -98,6 +99,11 @@ namespace TestConsole
                     Console.WriteLine($"\t\tClass: 0x{camera.USBInfo.Class.ToString("X8")}");
                     Console.WriteLine($"\t\tSubclass: 0x{camera.USBInfo.Subclass.ToString("X8")}");
                     Console.WriteLine($"\t\tProtocol: 0x{camera.USBInfo.Protocol.ToString("X8")}");
+
+                    StringBuilder builder = new StringBuilder();
+                    camera.Configuration.ToString(builder, "\t");
+                    Console.WriteLine("\tConfig:");
+                    Console.WriteLine(builder.ToString());
                     Console.WriteLine();
                 }
 
