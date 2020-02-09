@@ -15,9 +15,7 @@
  * ======================================================================== */
 
 using System;
-using System.Collections.Generic;
 using System.Runtime.InteropServices;
-using System.Text;
 
 namespace GPhoto2.Net
 {
@@ -32,7 +30,7 @@ namespace GPhoto2.Net
         /// <param name="Value">The widget's value</param>
         /// <returns>A status code indicating the result of the operation</returns>
         [DllImport(Constants.GPhoto2Lib, CharSet = CharSet.Ansi, ExactSpelling = true)]
-        private static extern GPResult gp_widget_get_value(IntPtr Widget, out string Value);
+        private static extern GPResult gp_widget_get_value(IntPtr Widget, out IntPtr Value);
 
 
         /// <summary>
@@ -54,12 +52,13 @@ namespace GPhoto2.Net
 
         public override string ToString()
         {
-            GPResult result = gp_widget_get_value(Widget.Handle, out string value);
+            GPResult result = gp_widget_get_value(Widget.Handle, out IntPtr valuePtr);
             if (result != GPResult.Ok)
             {
                 throw new Exception($"Error getting current value for {Title}: {result}");
             }
 
+            string value = Marshal.PtrToStringAnsi(valuePtr);
             return $"{Title} (Text): {value}";
         }
 

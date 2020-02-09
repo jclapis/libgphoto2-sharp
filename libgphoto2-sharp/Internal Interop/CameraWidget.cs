@@ -185,7 +185,7 @@ namespace GPhoto2.Net
                 {
                     throw new Exception($"Error getting widget name: {result}");
                 }
-                string name = Marshal.PtrToStringAnsi(namePtr, 256);
+                string name = Marshal.PtrToStringAnsi(namePtr);
                 return name;
             }
         }
@@ -208,7 +208,7 @@ namespace GPhoto2.Net
                 {
                     throw new Exception($"Error getting widget info: {result}");
                 }
-                string info = Marshal.PtrToStringAnsi(infoPtr, 1024);
+                string info = Marshal.PtrToStringAnsi(infoPtr);
                 return info;
             }
         }
@@ -253,7 +253,7 @@ namespace GPhoto2.Net
                 {
                     throw new Exception($"Error getting widget label: {result}");
                 }
-                string label = Marshal.PtrToStringAnsi(labelPtr, 256);
+                string label = Marshal.PtrToStringAnsi(labelPtr);
                 return label;
             }
         }

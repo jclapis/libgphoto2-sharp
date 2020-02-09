@@ -30,7 +30,7 @@ namespace GPhoto2.Net
         /// <param name="Name">[OUT] The name of the port</param>
         /// <returns>A status code indicating the result of the operation</returns>
         [DllImport(Constants.GPhoto2Lib, CharSet = CharSet.Ansi, ExactSpelling = true)]
-        private static extern GPResult gp_port_info_get_name(IntPtr Info, out string Name);
+        private static extern GPResult gp_port_info_get_name(IntPtr Info, out IntPtr Name);
 
 
         /// <summary>
@@ -40,7 +40,7 @@ namespace GPhoto2.Net
         /// <param name="Name">[OUT] The path of the port</param>
         /// <returns>A status code indicating the result of the operation</returns>
         [DllImport(Constants.GPhoto2Lib, CharSet = CharSet.Ansi, ExactSpelling = true)]
-        private static extern GPResult gp_port_info_get_path(IntPtr Info, out string Path);
+        private static extern GPResult gp_port_info_get_path(IntPtr Info, out IntPtr Path);
 
 
         /// <summary>
@@ -68,12 +68,13 @@ namespace GPhoto2.Net
         {
             get
             {
-                GPResult result = gp_port_info_get_name(Handle, out string name);
+                GPResult result = gp_port_info_get_name(Handle, out IntPtr namePtr);
                 if(result != GPResult.Ok)
                 {
-                    throw new Exception($"Getting the port name failed: {name}");
+                    throw new Exception($"Getting the port name failed: {result}");
                 }
 
+                string name = Marshal.PtrToStringAnsi(namePtr);
                 return name;
             }
         }
@@ -86,12 +87,13 @@ namespace GPhoto2.Net
         {
             get
             {
-                GPResult result = gp_port_info_get_path(Handle, out string path);
+                GPResult result = gp_port_info_get_path(Handle, out IntPtr pathPtr);
                 if (result != GPResult.Ok)
                 {
-                    throw new Exception($"Getting the port path failed: {path}");
+                    throw new Exception($"Getting the port path failed: {result}");
                 }
 
+                string path = Marshal.PtrToStringAnsi(pathPtr);
                 return path;
             }
         }
@@ -107,7 +109,7 @@ namespace GPhoto2.Net
                 GPResult result = gp_port_info_get_type(Handle, out GPPortType type);
                 if (result != GPResult.Ok)
                 {
-                    throw new Exception($"Getting the port type failed: {type}");
+                    throw new Exception($"Getting the port type failed: {result}");
                 }
 
                 return type;

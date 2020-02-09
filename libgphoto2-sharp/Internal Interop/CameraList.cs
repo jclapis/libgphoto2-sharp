@@ -64,7 +64,7 @@ namespace GPhoto2.Net
         /// <param name="Name">[OUT] The name of the camera</param>
         /// <returns>A status code indicating the result of the operation</returns>
         [DllImport(Constants.GPhoto2Lib, CharSet = CharSet.Ansi, ExactSpelling = true)]
-        private static extern GPResult gp_list_get_name(IntPtr List, int Index, out string Name);
+        private static extern GPResult gp_list_get_name(IntPtr List, int Index, out IntPtr Name);
 
 
         /// <summary>
@@ -75,7 +75,7 @@ namespace GPhoto2.Net
         /// <param name="Port">[OUT] The port of the camera</param>
         /// <returns>A status code indicating the result of the operation</returns>
         [DllImport(Constants.GPhoto2Lib, CharSet = CharSet.Ansi, ExactSpelling = true)]
-        private static extern GPResult gp_list_get_value(IntPtr List, int Index, out string Port);
+        private static extern GPResult gp_list_get_value(IntPtr List, int Index, out IntPtr Port);
 
         #endregion
 
@@ -138,12 +138,13 @@ namespace GPhoto2.Net
                 throw new Exception(nameof(CameraList));
             }
 
-            GPResult result = gp_list_get_name(Handle, Index, out string name);
+            GPResult result = gp_list_get_name(Handle, Index, out IntPtr namePtr);
             if(result != GPResult.Ok)
             {
                 throw new Exception($"Error getting name for camera {Index}: {result}");
             }
 
+            string name = Marshal.PtrToStringAnsi(namePtr);
             return name;
         }
 
@@ -160,12 +161,13 @@ namespace GPhoto2.Net
                 throw new Exception(nameof(CameraList));
             }
 
-            GPResult result = gp_list_get_value(Handle, Index, out string port);
+            GPResult result = gp_list_get_value(Handle, Index, out IntPtr portPtr);
             if (result != GPResult.Ok)
             {
                 throw new Exception($"Error getting name for camera {Index}: {result}");
             }
 
+            string port = Marshal.PtrToStringAnsi(portPtr);
             return port;
         }
 

@@ -32,7 +32,7 @@ namespace GPhoto2.Net
         /// <param name="Value">The widget's value</param>
         /// <returns>A status code indicating the result of the operation</returns>
         [DllImport(Constants.GPhoto2Lib, CharSet = CharSet.Ansi, ExactSpelling = true)]
-        private static extern GPResult gp_widget_get_value(IntPtr Widget, out string Value);
+        private static extern GPResult gp_widget_get_value(IntPtr Widget, out IntPtr Value);
 
 
         /// <summary>
@@ -52,7 +52,7 @@ namespace GPhoto2.Net
         /// <param name="Choice">[OUT] The choice at the given index</param>
         /// <returns>A status code indicating the result of the operation</returns>
         [DllImport(Constants.GPhoto2Lib, CharSet = CharSet.Ansi, ExactSpelling = true)]
-        private static extern GPResult gp_widget_get_choice(IntPtr Widget, int ChoiceNumber, out string Choice);
+        private static extern GPResult gp_widget_get_choice(IntPtr Widget, int ChoiceNumber, out IntPtr Choice);
 
 
         /// <summary>
@@ -83,11 +83,12 @@ namespace GPhoto2.Net
 
             for(int i = 0; i < numberOfChoices; i++)
             {
-                GPResult result = gp_widget_get_choice(Widget.Handle, i, out string option);
+                GPResult result = gp_widget_get_choice(Widget.Handle, i, out IntPtr optionPtr);
                 if(result != GPResult.Ok)
                 {
                     throw new Exception($"Error getting option {i} for {Title}: {result}");
                 }
+                string option = Marshal.PtrToStringAnsi(optionPtr);
                 options.Add(option);
             }
 
@@ -105,12 +106,13 @@ namespace GPhoto2.Net
                 builder.Append($", {Options[i]}");
             }
 
-            GPResult result = gp_widget_get_value(Widget.Handle, out string value);
+            GPResult result = gp_widget_get_value(Widget.Handle, out IntPtr valuePtr);
             if (result != GPResult.Ok)
             {
                 throw new Exception($"Error getting current value for {Title}: {result}");
             }
 
+            string value = Marshal.PtrToStringAnsi(valuePtr);
             builder.Append($"; Current = {value}");
             return builder.ToString();
         }
