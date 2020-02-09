@@ -322,7 +322,7 @@ namespace GPhoto2.Net
 
 
         #region IDisposable Support
-        private bool DisposedValue = false; // To detect redundant calls
+        private bool DisposedValue = false;
 
         protected virtual void Dispose(bool disposing)
         {
@@ -330,7 +330,7 @@ namespace GPhoto2.Net
             {
                 if (disposing)
                 {
-                    // TODO: dispose managed state (managed objects).
+
                 }
 
                 gp_widget_free(Handle);
@@ -343,7 +343,6 @@ namespace GPhoto2.Net
             Dispose(false);
         }
 
-        // This code added to correctly implement the disposable pattern.
         public void Dispose()
         {
             Dispose(true);

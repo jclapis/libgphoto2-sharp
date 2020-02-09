@@ -20,7 +20,7 @@ using System.Text;
 
 namespace GPhoto2.Net
 {
-    public class CameraConfiguration //: IDisposable
+    public class CameraConfiguration : IDisposable
     {
         private readonly int ID;
 
@@ -108,6 +108,28 @@ namespace GPhoto2.Net
                 section.ToString(Builder, Indent + "\t");
             }
         }
+
+
+        #region IDisposable Support
+        private bool DisposedValue = false;
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!DisposedValue)
+            {
+                if (disposing)
+                {
+                    Widget.Dispose();
+                }
+                DisposedValue = true;
+            }
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+        }
+        #endregion
 
     }
 }
