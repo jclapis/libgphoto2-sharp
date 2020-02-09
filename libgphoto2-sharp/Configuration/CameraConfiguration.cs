@@ -22,9 +22,9 @@ namespace GPhoto2.Net
 {
     public class CameraConfiguration //: IDisposable
     {
-        private readonly CameraWidget Widget;
-
         private readonly int ID;
+
+        internal CameraWidget Widget { get; }
 
         public string Title { get; }
 

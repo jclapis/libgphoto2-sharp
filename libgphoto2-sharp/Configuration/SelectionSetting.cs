@@ -70,6 +70,30 @@ namespace GPhoto2.Net
         public IReadOnlyList<string> Options { get; }
 
 
+        public string Value
+        {
+            get
+            {
+                GPResult result = gp_widget_get_value(Widget.Handle, out IntPtr valuePtr);
+                if(result != GPResult.Ok)
+                {
+                    throw new Exception($"Error getting value for {Title}: {result}");
+                }
+
+                string value = Marshal.PtrToStringAnsi(valuePtr);
+                return value;
+            }
+            set
+            {
+                GPResult result = gp_widget_set_value(Widget.Handle, value);
+                if (result != GPResult.Ok)
+                {
+                    throw new Exception($"Error setting value for {Title}: {result}");
+                }
+            }
+        }
+
+
         internal SelectionSetting(CameraWidget Widget)
             : base(Widget)
         {

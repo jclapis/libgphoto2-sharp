@@ -100,6 +100,17 @@ namespace GPhoto2.Net
         [DllImport(Constants.GPhoto2Lib, CharSet = CharSet.Ansi, ExactSpelling = true)]
         private static extern GPResult gp_camera_get_config(IntPtr Camera, out IntPtr Window, IntPtr Context);
 
+
+        /// <summary>
+        /// Sets the configuration.
+        /// </summary>
+        /// <param name="Camera">This <see cref="Camera"/> handle</param>
+        /// <param name="Window">The <see cref="CameraWidget"/> handle for the configuration to set</param>
+        /// <param name="Context">The context that owns the camera</param>
+        /// <returns>A status code indicating the result of the operation</returns>
+        [DllImport(Constants.GPhoto2Lib, CharSet = CharSet.Ansi, ExactSpelling = true)]
+        private static extern GPResult gp_camera_set_config(IntPtr Camera, IntPtr Window, IntPtr Context);
+
         #endregion
 
 
@@ -266,6 +277,20 @@ namespace GPhoto2.Net
             if (result != GPResult.Ok)
             {
                 throw new Exception($"Error disconnecting from camera: {result}");
+            }
+        }
+
+
+        /// <summary>
+        /// Updates the camera's configuration settings. Modify the <see cref="Configuration"/>
+        /// object, then call this to pass the updates to the camera.
+        /// </summary>
+        public void UpdateConfiguration()
+        {
+            GPResult result = gp_camera_set_config(Handle, Configuration.Widget.Handle, Context.Handle);
+            if (result != GPResult.Ok)
+            {
+                throw new Exception($"Error updating camera configuration: {result}");
             }
         }
 
