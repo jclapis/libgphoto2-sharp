@@ -6,7 +6,7 @@
     <Copyright>Copyright (C) 2020 Joe Clapis.</Copyright>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <PackageProjectUrl>https://github.com/jclapis/libgphoto2-sharp</PackageProjectUrl>
-    <Version>0.0.1-alpha6</Version>
+    <Version>0.0.1-alpha8</Version>
     <Authors>Joe Clapis</Authors>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <RepositoryUrl>https://github.com/jclapis/libgphoto2-sharp</RepositoryUrl>

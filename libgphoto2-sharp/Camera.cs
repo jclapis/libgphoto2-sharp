@@ -111,6 +111,32 @@ namespace GPhoto2.Net
         [DllImport(Constants.GPhoto2Lib, CharSet = CharSet.Ansi, ExactSpelling = true)]
         private static extern GPResult gp_camera_set_config(IntPtr Camera, IntPtr Window, IntPtr Context);
 
+
+        /// <summary>
+        /// Captures an image, movie, or sound clip depending on the given type.
+        /// </summary>
+        /// <param name="Camera">This <see cref="Camera"/> handle</param>
+        /// <param name="Type">The type of media to capture</param>
+        /// <param name="Path">A struct describing the location of the captured file</param>
+        /// <param name="Context">The context that owns the camera</param>
+        /// <returns>A status code indicating the result of the operation</returns>
+        [DllImport(Constants.GPhoto2Lib, CharSet = CharSet.Ansi, ExactSpelling = true)]
+        private static extern GPResult gp_camera_capture(IntPtr Camera, CameraCaptureType Type, out CameraFilePath Path, IntPtr Context);
+
+
+        /// <summary>
+        /// Retrieves a file from the Camera.
+        /// </summary>
+        /// <param name="Camera">This <see cref="Camera"/> handle</param>
+        /// <param name="Folder">The folder that the file resides in</param>
+        /// <param name="File">The name of the file to retrieve</param>
+        /// <param name="Type">The type of the file</param>
+        /// <param name="CameraFile">The CameraFile object that will contain the file's data</param>
+        /// <param name="Context">The context that owns the camera</param>
+        /// <returns>A status code indicating the result of the operation</returns>
+        [DllImport(Constants.GPhoto2Lib, CharSet = CharSet.Ansi, ExactSpelling = true)]
+        private static extern GPResult gp_camera_file_get(IntPtr Camera, string Folder, string File, CameraFileType Type, IntPtr CameraFile, IntPtr Context);
+
         #endregion
 
 
@@ -174,6 +200,9 @@ namespace GPhoto2.Net
         public USBInfo USBInfo { get; }
 
 
+        /// <summary>
+        /// The camera's configuration settings
+        /// </summary>
         public CameraConfiguration Configuration { get; }
 
 
@@ -292,6 +321,36 @@ namespace GPhoto2.Net
             {
                 throw new Exception($"Error updating camera configuration: {result}");
             }
+        }
+
+
+        /// <summary>
+        /// Captures and retrieves a file from the camera.
+        /// </summary>
+        /// <param name="CaptureType">The type of file to capture</param>
+        /// <returns>The captured file</returns>
+        public CameraFile Capture(CameraCaptureType CaptureType)
+        {
+            if (DisposedValue)
+            {
+                throw new ObjectDisposedException(nameof(Camera));
+            }
+
+            GPResult result = gp_camera_capture(Handle, CaptureType, out CameraFilePath path, Context.Handle);
+            if (result != GPResult.Ok)
+            {
+                throw new Exception($"Error during camera capture: {result}");
+            }
+
+            CameraFile cameraFile = new CameraFile(path.Folder, path.Name);
+            result = gp_camera_file_get(Handle, path.Folder, path.Name, CameraFileType.Normal, cameraFile.Handle, Context.Handle);
+            if(result != GPResult.Ok)
+            {
+                throw new Exception($"Error getting file {path.Name} from camera: {result}");
+            }
+            cameraFile.DownloadData();
+            cameraFile.Dispose();   // Get rid of the unmanaged camera_file object, so we don't have 2 copies of the file's data
+            return cameraFile;
         }
 
 

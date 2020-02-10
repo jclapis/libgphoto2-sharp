@@ -19,6 +19,9 @@ using System.Runtime.InteropServices;
 
 namespace GPhoto2.Net
 {
+    /// <summary>
+    /// Represents information about a camera port.
+    /// </summary>
     internal class GPPortInfo
     {
         #region Interop from gphoto2-port-info-list.h

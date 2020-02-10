@@ -17,9 +17,32 @@
 using System;
 
 namespace GPhoto2.Net
-{/// <summary>
- /// Current implementation status of the camera driver.
- /// </summary>
+{
+    /// <summary>
+    /// The type of capture to perform when asking the camera to capture.
+    /// </summary>
+    public enum CameraCaptureType
+    {
+        /// <summary>
+        /// Capture an image
+        /// </summary>
+        Image,
+
+        /// <summary>
+        /// Capture a movie
+        /// </summary>
+        Movie,
+
+        /// <summary>
+        /// Capture audio
+        /// </summary>
+        Sound
+    }
+
+
+    /// <summary>
+    /// Current implementation status of the camera driver.
+    /// </summary>
     public enum CameraDriverQuality
     {
         /// <summary>
