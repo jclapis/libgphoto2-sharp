@@ -124,6 +124,18 @@ namespace GPhoto2.Net
         }
 
 
+        public (IntPtr Buffer, int Size) GetBuffer()
+        {
+            GPResult result = gp_file_get_data_and_size(Handle, out IntPtr dataPtr, out ulong size);
+            if (result != GPResult.Ok)
+            {
+                throw new Exception($"Error getting buffer for {Name}: {result}");
+            }
+
+            return (dataPtr, (int)size);
+        }
+
+
         internal void DownloadData()
         {
             GPResult result = gp_file_get_data_and_size(Handle, out IntPtr dataPtr, out ulong size);

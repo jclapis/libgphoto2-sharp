@@ -46,6 +46,28 @@ namespace GPhoto2.Net
 
         #endregion
 
+        public bool Value
+        {
+            get
+            {
+                GPResult result = gp_widget_get_value(Widget.Handle, out int value);
+                if (result != GPResult.Ok)
+                {
+                    throw new Exception($"Error getting value for {Title}: {result}");
+                }
+
+                return (value == 1);
+            }
+            set
+            {
+                int valueInt = (value ? 1 : 0);
+                GPResult result = gp_widget_set_value(Widget.Handle, ref valueInt);
+                if (result != GPResult.Ok)
+                {
+                    throw new Exception($"Error setting value for {Title}: {result}");
+                }
+            }
+        }
 
         internal ToggleSetting(CameraWidget Widget)
             : base(Widget)
