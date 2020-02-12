@@ -46,12 +46,17 @@ namespace GPhoto2.Net
 
         #endregion
 
-        private readonly DateTime UnixEpoch;
+        private static readonly DateTime UnixEpoch;
+
+        static DateSetting()
+        {
+            UnixEpoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).ToLocalTime();
+        }
 
         internal DateSetting(CameraWidget Widget)
             : base(Widget)
         {
-            UnixEpoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).ToLocalTime();
+
         }
 
         public override string ToString()

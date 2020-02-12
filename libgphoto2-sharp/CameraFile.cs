@@ -82,7 +82,17 @@ namespace GPhoto2.Net
         /// <param name="File">This <see cref="CameraFile"/> handle</param>
         /// <returns>A status code indicating the result of the operation</returns>
         [DllImport(Constants.GPhoto2Lib, CharSet = CharSet.Ansi, ExactSpelling = true)]
-        private static extern GPResult gp_file_free(IntPtr InfoFile);
+        private static extern GPResult gp_file_free(IntPtr File);
+
+
+        /// <summary>
+        /// Gets the name of the file.
+        /// </summary>
+        /// <param name="File">This <see cref="CameraFile"/> handle</param>
+        /// <param name="Name">[OUT] The name of the file</param>
+        /// <returns>A status code indicating the result of the operation</returns>
+        [DllImport(Constants.GPhoto2Lib, CharSet = CharSet.Ansi, ExactSpelling = true)]
+        private static extern GPResult gp_file_get_name(IntPtr File, out IntPtr Name);
 
 
         /// <summary>
@@ -95,59 +105,115 @@ namespace GPhoto2.Net
         [DllImport(Constants.GPhoto2Lib, CharSet = CharSet.Ansi, ExactSpelling = true)]
         private static extern GPResult gp_file_get_data_and_size(IntPtr File, out IntPtr Data, out ulong Size);
 
+
+        /// <summary>
+        /// Gets the MIME type of the file.
+        /// </summary>
+        /// <param name="File">This <see cref="CameraFile"/> handle</param>
+        /// <param name="MimeType">[OUT] The file's MIME type</param>
+        /// <returns>A status code indicating the result of the operation</returns>
+        [DllImport(Constants.GPhoto2Lib, CharSet = CharSet.Ansi, ExactSpelling = true)]
+        private static extern GPResult gp_file_get_mime_type(IntPtr File, out IntPtr MimeType);
+
+
+        /// <summary>
+        /// Gets the time that the file was last modified.
+        /// </summary>
+        /// <param name="File">This <see cref="CameraFile"/> handle</param>
+        /// <param name="MimeType">[OUT] The file's modification time</param>
+        /// <returns>A status code indicating the result of the operation</returns>
+        [DllImport(Constants.GPhoto2Lib, CharSet = CharSet.Ansi, ExactSpelling = true)]
+        private static extern GPResult gp_file_get_mtime(IntPtr File, out long MTime);
+
+
+        /// <summary>
+        /// Determines the MIME type of the file based on its header information.
+        /// </summary>
+        /// <param name="File">This <see cref="CameraFile"/> handle</param>
+        /// <returns>A status code indicating the result of the operation</returns>
+        [DllImport(Constants.GPhoto2Lib, CharSet = CharSet.Ansi, ExactSpelling = true)]
+        private static extern GPResult gp_file_detect_mime_type(IntPtr File);
+
         #endregion
+
+        private static readonly DateTime UnixEpoch;
 
 
         internal IntPtr Handle { get; }
 
 
-        public string Folder { get; }
+        public string Name { get; private set; }
 
 
-        public string Name { get; }
+        public string MimeType { get; private set; }
 
 
-        public byte[] Data { get; private set; }
+        public DateTime ModifiedTime { get; private set; }
 
 
-        public CameraFile(string Folder, string Name)
+        public IntPtr Data { get; private set; }
+
+
+        public ulong Size { get; private set; }
+
+
+        static CameraFile()
         {
-            this.Folder = Folder;
-            this.Name = Name;
+            UnixEpoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).ToLocalTime();
+        }
 
+
+        internal CameraFile(string Name = null)
+        {
             GPResult result = gp_file_new(out IntPtr handle);
             if(result != GPResult.Ok)
             {
                 throw new Exception($"Error creating new file for {Name}: {result}");
             }
             Handle = handle;
+            if(Name != null)
+            { 
+                this.Name = Name; 
+            }
         }
 
 
-        public (IntPtr Buffer, int Size) GetBuffer()
+        internal void Initialize()
         {
-            GPResult result = gp_file_get_data_and_size(Handle, out IntPtr dataPtr, out ulong size);
+            GPResult result;
+            if (Name == null)
+            {
+                result = gp_file_get_name(Handle, out IntPtr namePtr);
+                if (result != GPResult.Ok)
+                {
+                    throw new Exception($"Error getting name of file: {result}");
+                }
+                Name = Marshal.PtrToStringAnsi(namePtr);
+            }
+
+            result = gp_file_get_mime_type(Handle, out IntPtr mimeTypePtr);
+            if (result != GPResult.Ok)
+            {
+                throw new Exception($"Error getting MIME type of {Name}: {result}");
+            }
+            MimeType = Marshal.PtrToStringAnsi(mimeTypePtr);
+
+
+            result = gp_file_get_mtime(Handle, out long time);
+            if (result != GPResult.Ok)
+            {
+                throw new Exception($"Error getting modified time of {Name}: {result}");
+            }
+            ModifiedTime = UnixEpoch.AddSeconds(time);
+
+            result = gp_file_get_data_and_size(Handle, out IntPtr dataPtr, out ulong size);
             if (result != GPResult.Ok)
             {
                 throw new Exception($"Error getting buffer for {Name}: {result}");
             }
-
-            return (dataPtr, (int)size);
+            Data = dataPtr;
+            Size = size;
         }
-
-
-        internal void DownloadData()
-        {
-            GPResult result = gp_file_get_data_and_size(Handle, out IntPtr dataPtr, out ulong size);
-            if(result != GPResult.Ok)
-            {
-                throw new Exception($"Error downloading file {Name}: {result}");
-            }
-
-            Data = new byte[size];
-            Marshal.Copy(dataPtr, Data, 0, Data.Length);
-        }
-
 
         #region IDisposable Support
         private bool DisposedValue = false;

@@ -158,12 +158,6 @@ namespace GPhoto2.Net
 
 
         /// <summary>
-        /// The dedicated file for getting live views / previews
-        /// </summary>
-        private readonly CameraFile PreviewFile;
-
-
-        /// <summary>
         /// The underlying handle used by libgphoto2
         /// </summary>
         internal IntPtr Handle { get; }
@@ -288,8 +282,6 @@ namespace GPhoto2.Net
             }
             CameraWidget widget = new CameraWidget(widgetHandle);
             Configuration = new CameraConfiguration(widget);
-
-            PreviewFile = new CameraFile("/", "<Preview>");
         }
 
 
@@ -361,14 +353,13 @@ namespace GPhoto2.Net
                 throw new Exception($"Error during camera capture: {result}");
             }
 
-            CameraFile cameraFile = new CameraFile(path.Folder, path.Name);
+            CameraFile cameraFile = new CameraFile(path.Name);
             result = gp_camera_file_get(Handle, path.Folder, path.Name, CameraFileType.Normal, cameraFile.Handle, Context.Handle);
             if(result != GPResult.Ok)
             {
                 throw new Exception($"Error getting file {path.Name} from camera: {result}");
             }
-            cameraFile.DownloadData();
-            cameraFile.Dispose();   // Get rid of the unmanaged camera_file object, so we don't have 2 copies of the file's data
+            cameraFile.Initialize();
             return cameraFile;
         }
 
@@ -376,9 +367,7 @@ namespace GPhoto2.Net
         /// <summary>
         /// Captures a preview from the camera (e.g. from the live view).
         /// </summary>
-        /// <returns>A camera file with the preview data. Call <see cref="CameraFile.GetBuffer"/> to retrieve it.
-        /// Do NOT dispose this file when you're finished with it, because it is reused for each call to
-        /// <see cref="Preview"/>!</returns>
+        /// <returns>A camera file with the preview data.</returns>
         public CameraFile Preview()
         {
             if(DisposedValue)
@@ -386,13 +375,14 @@ namespace GPhoto2.Net
                 throw new ObjectDisposedException(nameof(Camera));
             }
 
-            GPResult result = gp_camera_capture_preview(Handle, PreviewFile.Handle, Context.Handle);
+            CameraFile previewFile = new CameraFile();
+            GPResult result = gp_camera_capture_preview(Handle, previewFile.Handle, Context.Handle);
             if(result != GPResult.Ok)
             {
                 throw new Exception($"Error getting preview: {result}");
             }
-
-            return PreviewFile;
+            previewFile.Initialize();
+            return previewFile;
         }
 
 
@@ -406,7 +396,6 @@ namespace GPhoto2.Net
                 if (disposing)
                 {
                     Configuration.Dispose();
-                    PreviewFile.Dispose();
                 }
                 gp_camera_free(Handle);
                 DisposedValue = true;
